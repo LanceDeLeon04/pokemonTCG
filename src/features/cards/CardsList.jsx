@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useGetCardsQuery } from "../../services/pokemonApi";
 import CardItem from "../../components/CardItem";
 import CardModal from "../../components/CardModal";
@@ -21,19 +21,24 @@ const CardsList = () => {
     { refetchOnMountOrArgChange: true }
   );
 
-  const calculateGridPositions = (order) => {
-    if (!data?.data) return [];
-    const cardWidth = 150;
-    const gap = 20;
-    const cardsPerRow = Math.floor(window.innerWidth / (cardWidth + gap)) || 1;
+  // ✅ Wrap calculateGridPositions in useCallback to include in dependencies
+  const calculateGridPositions = useCallback(
+    (order) => {
+      if (!data?.data) return [];
+      const cardWidth = 150;
+      const gap = 20;
+      const cardsPerRow = Math.floor(window.innerWidth / (cardWidth + gap)) || 1;
 
-    return order.map((cardIndex, i) => ({
-      x: (i % cardsPerRow) * (cardWidth + gap),
-      y: Math.floor(i / cardsPerRow) * 220,
-      cardIndex,
-    }));
-  };
+      return order.map((cardIndex, i) => ({
+        x: (i % cardsPerRow) * (cardWidth + gap),
+        y: Math.floor(i / cardsPerRow) * 220,
+        cardIndex,
+      }));
+    },
+    [data]
+  );
 
+  // ✅ Proper useEffect with all dependencies
   useEffect(() => {
     if (!data?.data) return;
 
@@ -44,9 +49,10 @@ const CardsList = () => {
     setPositions(initialPos);
 
     const handleResize = () => setPositions(calculateGridPositions(shuffledOrder));
+
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
-  }, [data]);
+  }, [data, shuffledOrder, calculateGridPositions]);
 
   const shuffleArray = (arr) => {
     const newArr = [...arr];
@@ -110,15 +116,12 @@ const CardsList = () => {
         backgroundRepeat: "no-repeat",
       }}
     >
-      {/* Semi-transparent overlay for 65% transparency */}
       <div
         className="absolute inset-0"
         style={{ backgroundColor: "rgba(255,255,255,0.35)", zIndex: 0 }}
       />
 
-      {/* Content goes on top of overlay */}
       <div className="relative z-10 flex flex-col items-center min-h-screen p-4">
-        {/* Controls */}
         <div className="flex flex-wrap items-center gap-4 mb-6 justify-center w-full">
           <input
             type="text"
@@ -141,7 +144,6 @@ const CardsList = () => {
           </button>
         </div>
 
-        {/* Loading & Error */}
         {isLoading && (
           <p className="text-center mt-20 text-white text-2xl font-bold relative z-10">
             Loading cards...
@@ -153,7 +155,6 @@ const CardsList = () => {
           </p>
         )}
 
-        {/* Cards */}
         <div
           className="relative h-[calc(100vh-180px)] z-10"
           style={{ width: containerWidth }}
